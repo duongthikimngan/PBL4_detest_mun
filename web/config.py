@@ -1,45 +1,45 @@
 # ================================================================
 #  CẤU HÌNH ĐƯỜNG DẪN MODEL
-#  - Khi chạy LOCAL  : đặt đường dẫn tuyệt đối bên dưới
-#  - Khi deploy HF   : set biến môi trường HF_MODEL_REPO
-#    (app sẽ tự download models từ Hugging Face Hub)
+#  - Local Windows : dùng đường dẫn tuyệt đối
+#  - Docker/HF     : download từ HF Hub qua biến HF_MODEL_REPO
 # ================================================================
-import os
+import os, sys
+
+_IS_DOCKER = sys.platform != "win32" or os.environ.get("DOCKER")
 
 def _download_models():
-    """Download model files từ HF Hub về /tmp/models khi chạy trên HF Spaces."""
-    from huggingface_hub import hf_hub_download
+    """Download model files từ HF Hub về /tmp/hf_models/ khi chạy trên HF Spaces."""
+    from huggingface_hub import snapshot_download
     repo = os.environ["HF_MODEL_REPO"]
     d = "/tmp/hf_models"
-    os.makedirs(d + "/fold_1", exist_ok=True)
-    paths = {}
-    for fname, key in [
-        ("dinov2_vitb14_best.pth",                     "dinov2"),
-        ("best.pt",                                     "yolo"),
-        ("fold_1/best-epoch=35-youden=0.7596.ckpt",    "resnet"),
-    ]:
-        print(f"⬇️  Downloading {fname} from HF Hub...")
-        paths[key] = hf_hub_download(repo_id=repo, filename=fname,
-                                     local_dir=d, local_dir_use_symlinks=False)
-        print(f"   ✅ {fname} → {paths[key]}")
-    return paths
+    print(f"⬇️  Downloading models from {repo} ...")
+    snapshot_download(
+        repo_id=repo,
+        repo_type="model",
+        local_dir=d,
+        local_dir_use_symlinks=False,
+        token=os.environ.get("HF_TOKEN"),
+    )
+    print(f"   ✅ Models downloaded to {d}")
+    return d
 
-_HF_REPO = os.environ.get("HF_MODEL_REPO", "")
-if _HF_REPO:
-    # ── Hugging Face Spaces deployment ──────────────────────────
-    _p = _download_models()
-    DINOV2_MODEL_PATH = _p["dinov2"]
-    YOLO_MODEL_PATH   = _p["yolo"]
-    ACNE_LDS_SRC      = os.path.join(os.path.dirname(__file__), "acne-lds-main")
-    RESNET_CKPT       = {1: _p["resnet"]}
-else:
-    # ── Local development ────────────────────────────────────────
+if not _IS_DOCKER:
+    # ── Local Windows ────────────────────────────────────────────
     DINOV2_MODEL_PATH = r"C:\26F\Mun\DetectMun\dinov2_vitb14_best.pth"
     YOLO_MODEL_PATH   = r"C:\26F\Mun\DetectMun\best.pt"
     ACNE_LDS_SRC      = r"C:\26F\Mun\DetectMun\acne-lds-main"
     RESNET_CKPT       = {
         1: r"C:\26F\Mun\DetectMun\fold_1\best-epoch=35-youden=0.7596.ckpt",
     }
+else:
+    # ── Docker / HF Spaces ───────────────────────────────────────
+    d = _download_models()
+    DINOV2_MODEL_PATH = f"{d}/dinov2_vitb14_best.pth"
+    YOLO_MODEL_PATH   = f"{d}/best.pt"
+    ACNE_LDS_SRC      = "/app/acne-lds-main"
+    RESNET_CKPT       = {1: f"{d}/fold_1/best-epoch=35-youden=0.7596.ckpt"}
+
+
 
 # ================================================================
 #  NGƯỠNG & HẰNG SỐ

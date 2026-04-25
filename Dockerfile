@@ -11,7 +11,7 @@ WORKDIR /app
 COPY web/requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy app source
+# Copy app source + model source (code only, no model files)
 COPY web/ .
 COPY acne-lds-main/ acne-lds-main/
 
@@ -19,3 +19,4 @@ COPY acne-lds-main/ acne-lds-main/
 EXPOSE 7860
 
 CMD ["python", "app.py"]
+
