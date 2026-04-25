@@ -20,3 +20,10 @@ build/
 # ── OS ──
 .DS_Store
 Thumbs.db
+
+# ── Training logs / TensorBoard ──
+lightning_logs/
+*.tfevents*
+wandb/
+runs/
+logs/
