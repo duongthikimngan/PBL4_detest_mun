@@ -1,0 +1,22 @@
+# ── Model weights — tracked by Git LFS ──
+# (đã xóa *.pth, *.pt, *.ckpt khỏi ignore — dùng git lfs track thay thế)
+
+# ── Virtual environment ──
+venv/
+env/
+.venv/
+
+# ── Python cache ──
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ── Build / dist ──
+*.egg-info/
+dist/
+build/
+
+# ── OS ──
+.DS_Store
+Thumbs.db
