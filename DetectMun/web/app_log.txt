@@ -1,0 +1,11 @@
+=======================================================
+🔄 Đang load models...
+✅ DINOv2 loaded (31 classes)
+✅ YOLOv8 loaded
+   ✅ ResNet fold 1
+✅ ResNet50 ensemble: 1/5 folds
+=======================================================
+🌐 Mở trình duyệt tại: http://127.0.0.1:5000
+=======================================================
+ * Serving Flask app 'app'
+ * Debug mode: off
