@@ -1,0 +1,9 @@
+﻿*.pt
+*.pth
+*.ckpt
+skinscan-models/
+fold_1/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
