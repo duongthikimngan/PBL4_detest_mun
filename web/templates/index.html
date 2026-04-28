@@ -220,6 +220,8 @@
   .capture-btn:hover { transform: scale(1.08); }
   .start-camera-btn { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; border: none; padding: 14px 28px; border-radius: 99px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 6px 20px rgba(37,99,235,0.35); display: flex; align-items: center; gap: 8px; }
   .start-camera-btn:hover { transform: translateY(-2px); }
+  .flip-camera-btn { background: rgba(37,99,235,0.12); color: var(--primary); border: 1.5px solid rgba(37,99,235,0.25); padding: 10px 18px; border-radius: 99px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 6px; }
+  .flip-camera-btn:hover { background: rgba(37,99,235,0.2); transform: translateY(-1px); }
 
   /* RESULT PANEL */
   .result-panel { display: none; margin-top: 32px; animation: fadeUp 0.5s ease; }
@@ -391,7 +393,7 @@
         </div>
         <div class="hero-stats">
           <div class="stat"><div class="stat-num"><span>97</span>%</div><div class="stat-label">Độ chính xác</div></div>
-          <div class="stat"><div class="stat-num"><span>50</span>+</div><div class="stat-label">Bệnh da</div></div>
+          <div class="stat"><div class="stat-num"><span>30</span>+</div><div class="stat-label">Bệnh da</div></div>
           <div class="stat"><div class="stat-num"><span>3</span>s</div><div class="stat-label">Thời gian phân tích</div></div>
         </div>
       </div>
@@ -436,17 +438,11 @@
           </div>
           <div class="float-card-text"><strong>Độ chính xác cao</strong>97% detection rate</div>
         </div>
-        <div class="float-card float-card-2">
-          <div class="float-card-icon" style="background:rgba(37,99,235,0.12);">
-            <svg viewBox="0 0 20 20" width="20" height="20" fill="none"><circle cx="10" cy="10" r="8" stroke="#2563EB" stroke-width="1.5"/><path d="M10 6v4l3 3" stroke="#2563EB" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </div>
-          <div class="float-card-text"><strong>Thời gian thực</strong>Kết quả trong 3 giây</div>
-        </div>
         <div class="float-card float-card-3">
           <div class="float-card-icon" style="background:rgba(255,101,132,0.12);">
             <svg viewBox="0 0 20 20" width="20" height="20" fill="none"><path d="M10 2l2.4 4.8L18 8l-4 3.9.9 5.1L10 14.5 5.1 17l.9-5.1L2 8l5.6-.8z" stroke="#FF6584" stroke-width="1.5" stroke-linejoin="round"/></svg>
           </div>
-          <div class="float-card-text"><strong>50+ bệnh</strong>Phát hiện toàn diện</div>
+          <div class="float-card-text"><strong>30 bệnh</strong>Phát hiện toàn diện</div>
         </div>
       </div>
     </div>
@@ -464,14 +460,9 @@
       <div class="illus-icon" style="background:rgba(255,101,132,0.1);">
         <svg viewBox="0 0 36 36" width="26" height="26" fill="none"><path d="M18 4C11.4 4 6 9.4 6 16c0 4.4 2.3 8.3 5.7 10.6L11 28h14l-.7-1.4C27.7 24.3 30 20.4 30 16c0-6.6-5.4-12-12-12z" stroke="#FF6584" stroke-width="1.8"/><circle cx="18" cy="16" r="3" stroke="#FF6584" stroke-width="1.6"/></svg>
       </div>
-      <div><div class="illus-label">Bệnh da phát hiện</div><div class="illus-value">50+</div></div>
+      <div><div class="illus-label">Bệnh da phát hiện</div><div class="illus-value">30</div></div>
     </div>
-    <div class="illus-card">
-      <div class="illus-icon" style="background:rgba(67,233,123,0.1);">
-        <svg viewBox="0 0 36 36" width="26" height="26" fill="none"><circle cx="18" cy="18" r="12" stroke="#43E97B" stroke-width="2"/><path d="M18 11v7l4 2.5" stroke="#43E97B" stroke-width="2.2" stroke-linecap="round"/></svg>
-      </div>
-      <div><div class="illus-label">Thời gian phân tích</div><div class="illus-value">&lt; 3s</div></div>
-    </div>
+
     <div class="illus-card">
       <div class="illus-icon" style="background:rgba(240,147,251,0.1);">
         <svg viewBox="0 0 36 36" width="26" height="26" fill="none"><rect x="5" y="5" width="26" height="26" rx="7" stroke="#F093FB" stroke-width="1.8"/><path d="M12 18h12M18 12v12" stroke="#F093FB" stroke-width="2" stroke-linecap="round"/></svg>
@@ -487,21 +478,20 @@
       Tính năng nổi bật
     </div>
     <h2 class="section-title">Tất cả những gì bạn cần cho<br/><span>phân tích da thông minh</span></h2>
-    <p class="section-sub">Được hỗ trợ bởi các mô hình deep learning được huấn luyện trên hàng triệu ảnh da liễu.</p>
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon" style="background:rgba(37,99,235,0.1);">
           <svg viewBox="0 0 26 26" width="26" height="26" fill="none"><rect x="3" y="3" width="8" height="8" rx="2" stroke="#2563EB" stroke-width="1.8"/><rect x="15" y="3" width="8" height="8" rx="2" stroke="#2563EB" stroke-width="1.8"/><rect x="3" y="15" width="8" height="8" rx="2" stroke="#2563EB" stroke-width="1.8"/><circle cx="19" cy="19" r="4" stroke="#2563EB" stroke-width="1.8"/></svg>
         </div>
         <div class="feature-title">Phát hiện bệnh da AI</div>
-        <div class="feature-desc">Nhận diện 50+ bệnh da bao gồm mụn trứng cá, chàm, vảy nến, và nhiều hơn với độ chính xác cấp lâm sàng bởi DINOv2.</div>
+        <div class="feature-desc">Nhận diện 30 bệnh da bao gồm mụn trứng cá, chàm, vảy nến, và nhiều hơn với độ chính xác cấp lâm sàng bởi DINOv2.</div>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:rgba(255,101,132,0.1);">
           <svg viewBox="0 0 26 26" width="26" height="26" fill="none"><path d="M13 3C8.6 3 5 6.6 5 11c0 3 1.5 5.6 3.8 7.2L8 22h10l-.8-3.8C19.5 16.6 21 14 21 11c0-4.4-3.6-8-8-8z" stroke="#FF6584" stroke-width="1.8"/><circle cx="13" cy="11" r="2.5" stroke="#FF6584" stroke-width="1.5"/></svg>
         </div>
         <div class="feature-title">Đánh giá mức độ mụn</div>
-        <div class="feature-desc">Phân cấp mụn từ nhẹ đến rất nặng theo thang IGA, cung cấp số lượng nốt mụn và bản đồ phân bổ chi tiết bằng YOLOv8.</div>
+        <div class="feature-desc">Phân cấp mụn từ nhẹ đến rất nặng theo thang IGA, cung cấp số lượng nốt mụn và bản đồ phân bổ chi tiết bằng YOLOv8 và ResNet50.</div>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:rgba(67,233,123,0.1);">
@@ -515,7 +505,7 @@
           <svg viewBox="0 0 26 26" width="26" height="26" fill="none"><path d="M13 3v8l5 2.5" stroke="#F093FB" stroke-width="1.8" stroke-linecap="round"/><circle cx="13" cy="13" r="9" stroke="#F093FB" stroke-width="1.8"/></svg>
         </div>
         <div class="feature-title">Kết quả chi tiết tức thì</div>
-        <div class="feature-desc">Nhận báo cáo đầy đủ với chẩn đoán, điểm mức độ nghiêm trọng và khuyến nghị chăm sóc cá nhân hóa.</div>
+        <div class="feature-desc">Nhận báo cáo đầy đủ với chẩn đoán, điểm mức độ nghiêm trọng</div>
       </div>
     </div>
   </div>
@@ -543,32 +533,8 @@
         <div class="step-card">
           <div class="step-num" style="background:linear-gradient(135deg,var(--accent),#00b09b);">3</div>
           <div class="step-title">Nhận kết quả</div>
-          <div class="step-desc">Nhận báo cáo chi tiết với chẩn đoán, điểm mức độ và khuyến nghị chăm sóc cá nhân hóa.</div>
+          <div class="step-desc">Nhận báo cáo chi tiết với chẩn đoán, điểm mức độ nghiêm trọng và khuyến nghị chăm sóc cá nhân hóa.</div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- CTA -->
-  <div class="cta-section">
-    <div class="cta-card">
-      <h2 class="cta-title">Sẵn sàng quét da của bạn?</h2>
-      <p class="cta-sub">Hàng nghìn người dùng tin tưởng SkinScan AI để phát hiện sớm và an tâm.</p>
-      <div class="cta-btns">
-        <button class="btn-white" onclick="goToScan()">
-          <svg viewBox="0 0 20 20" width="18" height="18" fill="none">
-            <rect x="3" y="5" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M7 3v2M13 3v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-          Upload ảnh ngay
-        </button>
-        <button class="btn-ghost" onclick="goToScanCamera()">
-          <svg viewBox="0 0 20 20" width="18" height="18" fill="none">
-            <path d="M2 7a2 2 0 012-2h1.5l1.5-2h6l1.5 2H16a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V7z" stroke="#fff" stroke-width="1.5"/>
-            <circle cx="10" cy="11" r="2.5" stroke="#fff" stroke-width="1.5"/>
-          </svg>
-          Dùng camera
-        </button>
       </div>
     </div>
   </div>
@@ -700,6 +666,10 @@
             <button class="capture-btn" id="captureBtn" onclick="capturePhoto()" style="display:none;">
               <svg viewBox="0 0 28 28" width="28" height="28" fill="none"><circle cx="14" cy="14" r="8" fill="white" opacity="0.9"/></svg>
             </button>
+            <button class="flip-camera-btn" id="flipCameraBtn" onclick="flipCamera()" style="display:none;" title="Đổi camera">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M20 7H4M4 7l4-4M4 7l4 4M4 17h16M16 17l4-4M16 17l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Đổi camera
+            </button>
             <button class="start-camera-btn" id="startCameraBtn" onclick="startCamera()">
               <svg viewBox="0 0 20 20" width="16" height="16" fill="none"><path d="M2 8a3 3 0 013-3h1.5l2-3h7l2 3H15a3 3 0 013 3v6a3 3 0 01-3 3H5a3 3 0 01-3-3V8z" stroke="#fff" stroke-width="1.5"/><circle cx="10" cy="11" r="2.5" stroke="#fff" stroke-width="1.5"/></svg>
               Bật camera
@@ -716,13 +686,7 @@
               <div class="result-name" id="resultName">Mụn trứng cá nhẹ</div>
               <div class="result-conf" id="resultConf">Độ tin cậy: 94% · Vừa phân tích</div>
             </div>
-            <div class="result-badge warning" id="resultBadge">Nhẹ</div>
-          </div>
-
-          <div class="metrics-grid">
-            <div class="metric-card"><div class="metric-value" id="metricSeverity">32%</div><div class="metric-label">Mức độ nghiêm trọng</div></div>
-            <div class="metric-card"><div class="metric-value" id="metricConfidence">94%</div><div class="metric-label">Độ tin cậy AI</div></div>
-            <div class="metric-card"><div class="metric-value" id="metricLesions">12</div><div class="metric-label">Nốt mụn phát hiện</div></div>
+            <div class="result-badge" id="resultBadge">94%</div>
           </div>
 
           <div class="severity-bar-wrap">
@@ -752,33 +716,42 @@
 
 <script>
   // ── NAVIGATION ──
+  function showPage(show, hide) {
+    var s = document.getElementById(show);
+    var h = document.getElementById(hide);
+    if (h) { h.classList.remove('active'); h.style.display = 'none'; }
+    if (s) { s.classList.add('active'); s.style.display = 'block'; }
+  }
   function goToScan() {
-    document.getElementById('landingPage').classList.remove('active');
-    document.getElementById('scanPage').classList.add('active');
-    switchMode('upload');
+    showPage('scanPage', 'landingPage');
+    try { switchMode('upload'); } catch(e) {}
     window.scrollTo(0, 0);
   }
   function goToScanCamera() {
-    document.getElementById('landingPage').classList.remove('active');
-    document.getElementById('scanPage').classList.add('active');
-    switchMode('camera');
+    showPage('scanPage', 'landingPage');
+    try { switchMode('camera'); } catch(e) {}
     window.scrollTo(0, 0);
   }
   function goBack() {
-    document.getElementById('scanPage').classList.remove('active');
-    document.getElementById('landingPage').classList.add('active');
+    showPage('landingPage', 'scanPage');
+    try { stopCamera(); } catch(e) {}
     window.scrollTo(0, 0);
-    resetScan();
+    try { resetScan(); } catch(e) {}
   }
 
   // ── MODE SWITCH ──
   function switchMode(mode) {
     document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.scan-content').forEach(c => c.classList.remove('active'));
-    const key = mode.charAt(0).toUpperCase() + mode.slice(1);
-    document.getElementById('tab' + key).classList.add('active');
-    document.getElementById('content' + key).classList.add('active');
-    if (mode !== 'camera') stopCamera();
+    document.querySelectorAll('.scan-content').forEach(function(c) {
+      c.classList.remove('active');
+      c.style.display = 'none';
+    });
+    var key = mode.charAt(0).toUpperCase() + mode.slice(1);
+    var tab = document.getElementById('tab' + key);
+    var content = document.getElementById('content' + key);
+    if (tab) tab.classList.add('active');
+    if (content) { content.classList.add('active'); content.style.display = 'block'; }
+    if (mode !== 'camera') { try { stopCamera(); } catch(e) {} }
   }
 
   // ── FILE UPLOAD ──
@@ -854,17 +827,12 @@
     const gradeMap = { 0: 18, 1: 42, 2: 68, 3: 92 };
     const severity = isAcne && data.final_grade != null ? (gradeMap[data.final_grade] ?? 18) : 5;
 
-    document.getElementById('metricSeverity').textContent = severity + '%';
-    document.getElementById('metricConfidence').textContent = confPct + '%';
-    document.getElementById('metricLesions').textContent = data.yolo_count != null && data.yolo_severity_label ? data.yolo_count : '—';
     document.getElementById('severityPct').textContent = severity + '%';
 
-    // Badge
+    // Badge — show confidence
     const badgeEl = document.getElementById('resultBadge');
-    const finalLabel = data.final_label || (isAcne ? 'Mụn' : 'Bình thường');
-    badgeEl.textContent = finalLabel;
-    const g = data.final_grade;
-    badgeEl.className = 'result-badge' + (!isAcne || g == null || g === 0 ? '' : g === 1 ? ' warning' : ' moderate');
+    badgeEl.textContent = confPct + '%';
+    badgeEl.className = 'result-badge';
 
     // Conditions list — always show all available model results
     const condList = document.getElementById('conditionsList');
@@ -948,9 +916,12 @@
 
   // ── CAMERA ──
   let stream = null;
-  function startCamera() {
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+  let currentFacingMode = 'environment';
+  function startCamera(facingMode) {
+    if (facingMode) currentFacingMode = facingMode;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } })
       .then(s => {
+        if (stream) stream.getTracks().forEach(t => t.stop());
         stream = s;
         const video = document.getElementById('videoElement');
         video.srcObject = s;
@@ -960,8 +931,13 @@
         document.getElementById('scanLine').style.display = 'block';
         document.getElementById('startCameraBtn').style.display = 'none';
         document.getElementById('captureBtn').style.display = 'flex';
+        document.getElementById('flipCameraBtn').style.display = 'flex';
       })
       .catch(() => alert('Không thể truy cập camera. Vui lòng cấp quyền camera.'));
+  }
+  function flipCamera() {
+    currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+    startCamera();
   }
   function stopCamera() {
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
@@ -972,11 +948,13 @@
     const scanLine = document.getElementById('scanLine');
     const startBtn = document.getElementById('startCameraBtn');
     const captureBtn = document.getElementById('captureBtn');
+    const flipBtn = document.getElementById('flipCameraBtn');
     if (idleIcon) idleIcon.style.display = 'flex';
     if (idleText) idleText.style.display = 'block';
     if (scanLine) scanLine.style.display = 'none';
     if (startBtn) startBtn.style.display = 'flex';
     if (captureBtn) captureBtn.style.display = 'none';
+    if (flipBtn) flipBtn.style.display = 'none';
   }
   function capturePhoto() {
     const video = document.getElementById('videoElement');
@@ -1495,6 +1473,14 @@
             </button>
             <button
               class="reset-btn"
+              id="flipModalCameraBtn"
+              type="button"
+              style="margin: 0; display: inline-block"
+            >
+              🔄 Đổi camera
+            </button>
+            <button
+              class="reset-btn"
               id="closeCameraBtn"
               type="button"
               style="margin: 0; display: inline-block"
@@ -1715,21 +1701,34 @@
       const cameraStream = document.getElementById("cameraStream");
       const snapBtn = document.getElementById("snapBtn");
       const closeCameraBtn = document.getElementById("closeCameraBtn");
+      const flipModalCameraBtn = document.getElementById("flipModalCameraBtn");
       const cameraCanvas = document.getElementById("cameraCanvas");
       let mediaStream = null;
+      let modalFacingMode = "environment";
 
-      cameraBtn.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        cameraModal.style.display = "flex";
+      async function startModalCamera() {
         try {
+          if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
           mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user" },
+            video: { facingMode: modalFacingMode },
           });
           cameraStream.srcObject = mediaStream;
         } catch (err) {
           alert("Không truy cập được camera: " + err.message);
           cameraModal.style.display = "none";
         }
+      }
+
+      cameraBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        modalFacingMode = "environment";
+        cameraModal.style.display = "flex";
+        await startModalCamera();
+      });
+
+      flipModalCameraBtn.addEventListener("click", async () => {
+        modalFacingMode = modalFacingMode === "environment" ? "user" : "environment";
+        await startModalCamera();
       });
 
       function stopCamera() {

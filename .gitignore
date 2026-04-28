@@ -1,29 +1,21 @@
-# ── Model weights — tracked by Git LFS ──
-# (đã xóa *.pth, *.pt, *.ckpt khỏi ignore — dùng git lfs track thay thế)
+# Models (downloaded at runtime on HF Spaces)
+*.pt
+*.pth
+*.ckpt
+skinscan-models/
+fold_1/
 
-# ── Virtual environment ──
+# Training data / logs
+acne-lds-main/
+lightning_logs/
+*.tfevents*
+
+# Python
 venv/
-env/
-.venv/
-
-# ── Python cache ──
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-
-# ── Build / dist ──
-*.egg-info/
-dist/
-build/
-
-# ── OS ──
 .DS_Store
-Thumbs.db
 
-# ── Training logs / TensorBoard ──
-lightning_logs/
-*.tfevents*
-wandb/
-runs/
-logs/
+# Dev artifacts
+canvas-export*.html

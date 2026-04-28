@@ -10,7 +10,7 @@ _IS_DOCKER = sys.platform != "win32" or os.environ.get("DOCKER")
 def _download_models():
     """Download model files từ HF Hub về /tmp/hf_models/ khi chạy trên HF Spaces."""
     from huggingface_hub import snapshot_download
-    repo = os.environ["HF_MODEL_REPO"]
+    repo = os.environ["HF_MODEL_REPO"].strip()
     d = "/tmp/hf_models"
     print(f"⬇️  Downloading models from {repo} ...")
     snapshot_download(
