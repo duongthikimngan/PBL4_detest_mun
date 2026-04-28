@@ -1,9 +1,21 @@
-﻿*.pt
+# Models (downloaded at runtime on HF Spaces)
+*.pt
 *.pth
 *.ckpt
 skinscan-models/
 fold_1/
+
+# Training data / logs
+acne-lds-main/
+lightning_logs/
+*.tfevents*
+
+# Python
 venv/
 __pycache__/
 *.pyc
+*.pyo
 .DS_Store
+
+# Dev artifacts
+canvas-export*.html
