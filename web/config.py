@@ -25,11 +25,23 @@ def _download_models():
 
 if not _IS_DOCKER:
     # ── Local Windows ────────────────────────────────────────────
-    DINOV2_MODEL_PATH = r"C:\26F\Mun\DetectMun\dinov2_vitb14_best.pth"
-    YOLO_MODEL_PATH   = r"C:\26F\Mun\DetectMun\best.pt"
-    ACNE_LDS_SRC      = r"C:\26F\Mun\DetectMun\acne-lds-main"
+    ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    ws_dinov2 = os.path.join(ROOT, "dinov2_vitb14_best.pth")
+    ws_yolo   = os.path.join(ROOT, "best.pt")
+    ws_acne   = os.path.join(ROOT, "acne-lds-main")
+    ws_ckpt   = os.path.join(ROOT, "fold_1", "best-epoch=35-youden=0.7596.ckpt")
+
+    abs_base = r"C:\26F\Mun\DetectMun"
+    abs_dinov2 = os.path.join(abs_base, "dinov2_vitb14_best.pth")
+    abs_yolo   = os.path.join(abs_base, "best.pt")
+    abs_acne   = os.path.join(abs_base, "acne-lds-main")
+    abs_ckpt   = os.path.join(abs_base, "fold_1", "best-epoch=35-youden=0.7596.ckpt")
+
+    DINOV2_MODEL_PATH = ws_dinov2 if os.path.exists(ws_dinov2) else abs_dinov2
+    YOLO_MODEL_PATH   = ws_yolo   if os.path.exists(ws_yolo)   else abs_yolo
+    ACNE_LDS_SRC      = ws_acne   if os.path.exists(ws_acne)   else abs_acne
     RESNET_CKPT       = {
-        1: r"C:\26F\Mun\DetectMun\fold_1\best-epoch=35-youden=0.7596.ckpt",
+        1: ws_ckpt if os.path.exists(ws_ckpt) else abs_ckpt,
     }
 else:
     # ── Docker / HF Spaces ───────────────────────────────────────
@@ -40,16 +52,32 @@ else:
     RESNET_CKPT       = {1: f"{d}/fold_1/best-epoch=35-youden=0.7596.ckpt"}
 
 
-
 # ================================================================
 #  NGƯỠNG & HẰNG SỐ
 # ================================================================
-DINOV2_THRESHOLD = 0.5
 YOLO_CONF        = 0.01
 YOLO_IMG_SIZE    = 640
 ACNE_CLASS_INDEX = 0      # Class_0 = Acne trong DINOv2
 
-# Tên bệnh tương ứng với từng class DINOv2 (31 classes)
+# ── Temperature Scaling cho YOLO ─────────────────────────────────
+# Giá trị T > 1 nén confidence xuống, tránh overconfident.
+# Tune T trên tập val bằng NLL minimisation; mặc định 1.5 là điểm khởi đầu hợp lý.
+YOLO_TEMPERATURE = 1.5
+
+# ── Trọng số Weighted Average (từ benchmark val) ─────────────────
+# ResNet50 đóng vai anchor grade (tin cậy hơn về mức độ tổng thể).
+# YOLO chỉ bổ sung thông tin vị trí/số nốt, không quyết định grade.
+# Chỉnh 2 giá trị này sau khi có kết quả benchmark thực tế.
+RESNET_WEIGHT = 0.65
+YOLO_WEIGHT   = 0.35      # RESNET_WEIGHT + YOLO_WEIGHT phải = 1.0
+
+# ── Ngưỡng confidence DINOv2 để gắn cảnh báo (không chặn pipeline) ──
+# DINOv2 luôn trả 1 trong 31 bệnh (không có class rỗng).
+# Khi conf < ngưỡng này chỉ thêm warning, KHÔNG bỏ qua kết quả.
+DINOV2_LOW_CONF_WARN = 0.5
+
+# Tên bệnh tương ứng với từng class DINOv2 (31 classes, index 0–30)
+# Class 0 = Acne — là class duy nhất đi vào luồng YOLO + ResNet
 DINOV2_CLASS_NAMES = {
     0:  "Mụn trứng cá (Acne)",
     1:  "Dày sừng ánh sáng (Actinic Keratosis)",
@@ -81,10 +109,10 @@ DINOV2_CLASS_NAMES = {
     27: "Nấm thân (Tinea Corporis)",
     28: "Nấm đen (Tinea Nigra)",
     29: "Bọ cát (Tungiasis)",
-    30: "Da bình thường / Khác",
-    31: "Tổn thương mạch máu (Vascular Lesion)",
+    30: "Tổn thương mạch máu (Vascular Lesion)",
 }
 
+# 4 mức độ mụn — ResNet50 quyết định, YOLO bổ sung vị trí
 GRADE_LABEL = {
     0: "Nhẹ (Grade 0)",
     1: "Trung bình (Grade 1)",

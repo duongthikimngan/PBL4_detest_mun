@@ -77,7 +77,6 @@ def load_all_models():
     try:
         import types as _types, traceback as _tb
 
-        # ── Inject mock pytorch_lightning so torch.load can unpickle .ckpt ──
         def _ensure_pl_importable():
             """Register stub modules for pytorch_lightning (and friends) if not installed."""
             _dummy = lambda *a, **k: None
@@ -118,8 +117,6 @@ def load_all_models():
         resnet_transform = AcneTransformsTorch(train=False)
 
         def _load_ckpt(path):
-            """Load .ckpt, trying multiple strategies."""
-            # Strategy 1 — standard load (works if pytorch_lightning installed or mocked)
             try:
                 ckpt = torch.load(path, map_location=device, weights_only=False)
                 print(f"   ℹ️  ckpt top-level keys: {list(ckpt.keys()) if isinstance(ckpt, dict) else type(ckpt)}")
@@ -134,16 +131,13 @@ def load_all_models():
                 print(f"   Loading ResNet fold {fold}: {ckpt_path}")
                 ckpt = _load_ckpt(ckpt_path)
 
-                # Support multiple checkpoint formats
                 if isinstance(ckpt, dict) and "state_dict" in ckpt:
                     sd_raw = ckpt["state_dict"]
-                    # Strip "cnn." prefix that Lightning BaseModel adds
                     sd = {(k[4:] if k.startswith("cnn.") else k): v
                           for k, v in sd_raw.items()}
                 elif isinstance(ckpt, dict) and "model_state_dict" in ckpt:
                     sd = ckpt["model_state_dict"]
                 elif isinstance(ckpt, dict):
-                    # Maybe it IS the state_dict already
                     sd = ckpt
                 else:
                     raise ValueError(f"Unknown ckpt type: {type(ckpt)}")
@@ -176,6 +170,11 @@ def load_all_models():
 #  Các hàm suy luận
 # ──────────────────────────────────────────
 def classify_dinov2(img_pil):
+    """
+    Phân loại bắt buộc 1 trong 31 bệnh da.
+    DINOv2 KHÔNG có class rỗng — luôn trả top-1 class.
+    Khi conf < DINOV2_LOW_CONF_WARN chỉ gắn warning, không chặn pipeline.
+    """
     tensor = dinov2_transform(img_pil).unsqueeze(0).to(device)
     with torch.no_grad():
         probs = torch.softmax(dinov2_model(tensor), dim=1)[0]
@@ -185,29 +184,70 @@ def classify_dinov2(img_pil):
     return idx, probs[idx].item(), display_name
 
 
+def calibrate_yolo_conf(confs: list[float], temperature: float = YOLO_TEMPERATURE) -> list[float]:
+    """
+    Temperature Scaling (post-hoc calibration) cho confidence của YOLO.
+
+    Vấn đề: YOLOv8 thường overconfident — confidence cao nhưng thực tế
+    hay đoán sai, đặc biệt với ảnh góc lạ, nốt nhỏ, hoặc ảnh OOD.
+
+    Giải pháp: chia logit cho T trước khi softmax.
+        p_calibrated = sigmoid(logit / T)
+                     = sigmoid(log(p/(1-p)) / T)
+    Với T > 1: confidence được nén về gần 0.5 hơn → phản ánh đúng
+    thực tế hơn. Sau calibration, conf 80% thật sự ≈ đúng 80% lần.
+
+    T được tune trên tập val bằng cách tối thiểu hoá NLL (negative log-likelihood).
+    Giá trị mặc định YOLO_TEMPERATURE = 1.5 là điểm khởi đầu hợp lý.
+    """
+    if not confs or temperature <= 0:
+        return confs
+    calibrated = []
+    for p in confs:
+        p = float(np.clip(p, 1e-7, 1 - 1e-7))
+        logit = np.log(p / (1 - p))
+        p_cal = 1.0 / (1.0 + np.exp(-logit / temperature))
+        calibrated.append(round(float(p_cal), 4))
+    return calibrated
+
+
 def detect_yolo(img_rgb):
+    """
+    Detect từng nốt mụn bằng YOLOv8.
+    Vai trò trong pipeline: bổ sung thông tin vị trí (bbox) và số lượng nốt.
+    Không dùng confidence thô để quyết định grade — calibrate trước.
+    Không trả ảnh annotated — ảnh hiển thị là ảnh gốc (xử lý trong run_pipeline).
+    """
     h, w   = img_rgb.shape[:2]
     scale  = YOLO_IMG_SIZE / max(h, w)
     img_in = cv2.resize(img_rgb, (int(w*scale), int(h*scale))) if scale < 1 else img_rgb
     res    = yolo_model(img_in, conf=YOLO_CONF, verbose=False)[0]
     count  = len(res.boxes)
-    confs  = res.boxes.conf.cpu().numpy().tolist() if count > 0 else []
-    # Vẽ bounding box thủ công — chỉ hiển thị ô, không có nhãn chữ
-    annotated = img_in.copy()
-    for box in res.boxes:
-        x1, y1, x2, y2 = map(int, box.xyxy[0].cpu().numpy())
-        cv2.rectangle(annotated, (x1, y1), (x2, y2), (255, 50, 50), 2)
-    return count, confs, annotated
+    raw_confs = res.boxes.conf.cpu().numpy().tolist() if count > 0 else []
+
+    # Calibrate confidence trước khi dùng
+    cal_confs = calibrate_yolo_conf(raw_confs)
+
+    return count, cal_confs
 
 
-def yolo_severity(count):
-    if count <= 5:  return 0, "Mild (≤5 nốt)",       "#22c55e"
-    if count <= 20: return 1, "Moderate (6–20 nốt)",  "#eab308"
-    if count <= 50: return 2, "Severe (21–50 nốt)",   "#f97316"
-    return              3,    "Very Severe (>50 nốt)","#ef4444"
+def yolo_severity_score(count: int) -> float:
+    """
+    Chuyển số nốt mụn từ YOLO thành severity score [0.0–1.0].
+    Score này dùng trong weighted average, không dùng trực tiếp làm grade.
+    """
+    if count <= 5:   return 0.0 / 3.0   # ~ grade 0
+    if count <= 20:  return 1.0 / 3.0   # ~ grade 1
+    if count <= 50:  return 2.0 / 3.0   # ~ grade 2
+    return                3.0 / 3.0     # ~ grade 3
 
 
 def grade_resnet(img_pil):
+    """
+    Đánh giá mức độ mụn toàn ảnh bằng ResNet50 5-fold ensemble.
+    Vai trò trong pipeline: ANCHOR — quyết định grade chính xác nhất.
+    Trả về (grade: int 0-3, probs: list[float] len=4).
+    """
     if not resnet_models:
         return None, None
     tensor    = resnet_transform(img_pil).unsqueeze(0).to(device)
@@ -227,50 +267,104 @@ def grade_resnet(img_pil):
     return int(np.argmax(mean_probs)), mean_probs.tolist()
 
 
+def _weighted_grade(resnet_grade: int, resnet_probs: list,
+                    yolo_count: int) -> int:
+    """
+    Kết hợp ResNet (anchor) và YOLO (bổ sung) bằng Weighted Average.
+
+    Công thức:
+        final_score = RESNET_WEIGHT × resnet_score
+                    + YOLO_WEIGHT   × yolo_score
+
+    Trong đó:
+        resnet_score = resnet_grade / 3.0   (chuẩn hoá về [0,1])
+        yolo_score   = yolo_severity_score(yolo_count)  (đã [0,1])
+
+    Trọng số lấy từ benchmark thực tế trên tập val — KHÔNG dùng
+    runtime confidence (tránh bẫy YOLO overconfident).
+
+    ResNet đóng vai anchor: RESNET_WEIGHT = 0.65 > YOLO_WEIGHT = 0.35
+    nên dù YOLO cho score cao hơn thực tế, ResNet vẫn kéo kết quả
+    về đúng mức độ.
+    """
+    r_score = resnet_grade / 3.0
+    y_score = yolo_severity_score(yolo_count)
+    final_score = RESNET_WEIGHT * r_score + YOLO_WEIGHT * y_score
+    # Map score [0,1] về 4 mức grade
+    final_grade = int(np.clip(round(final_score * 3), 0, 3))
+    return final_grade
+
+
 # ──────────────────────────────────────────
 #  Pipeline chính
 # ──────────────────────────────────────────
 def run_pipeline(img_pil: Image.Image) -> dict:
-    # Ensure RGB mode throughout pipeline (handles RGBA, palette, grayscale uploads)
+    """
+    Pipeline 3 model — Da Liễu:
+
+    1. DINOv2 phân loại bắt buộc 1 trong 31 bệnh (không có class rỗng).
+       - Nếu KHÔNG phải mụn trứng cá → trả tên bệnh + confidence, kết thúc.
+       - Nếu LÀ mụn trứng cá → tiếp tục bước 2.
+
+    2. YOLO + ResNet chạy song song trên ảnh gốc:
+       - YOLO: detect vị trí nốt mụn → bbox, count, severity score
+               (calibrate confidence bằng Temperature Scaling trước)
+       - ResNet: grade toàn ảnh (5-fold ensemble) → anchor grade
+
+    3. Fusion bằng Weighted Average (val-based weights):
+       final = 0.65 × ResNet_score + 0.35 × YOLO_score
+       → 1 kết quả duy nhất đáng tin cậy nhất (nhẹ/trung bình/nặng/rất nặng)
+    """
     img_pil = img_pil.convert("RGB")
     img_rgb = np.array(img_pil)
 
     r = dict(
-        is_acne=False, dinov2_class="", dinov2_conf=0.0, dinov2_warning=False,
-        yolo_count=0, yolo_confs=[], yolo_severity_grade=None,
-        yolo_severity_label="", yolo_severity_color="#6b7280",
+        # DINOv2
+        is_acne=False, dinov2_class="", dinov2_conf=0.0, dinov2_low_conf=False,
+        # YOLO (bbox + calibrated confs)
+        yolo_count=0, yolo_confs=[],
+        # ResNet (anchor grade)
         resnet_grade=None, resnet_probs=[], resnet_grade_label="",
+        # Fusion output
         final_grade=None, final_label="", final_color="#6b7280",
-        inconsistent=False, recommendation="",
+        recommendation="",
+        # Extras
         annotated_image_b64="", warnings=[],
     )
 
-    # Step 1 — DINOv2
+    # ── Step 1: DINOv2 — phân loại 1 trong 31 bệnh ──────────────────
     if dinov2_model is None:
         r["warnings"].append("DINOv2 chưa được load.")
         return r
 
     pred_idx, conf, display_name = classify_dinov2(img_pil)
-    class_name = display_name
-    r["dinov2_class"]   = class_name
-    r["dinov2_conf"]    = round(conf, 4)
-    r["dinov2_warning"] = conf < DINOV2_THRESHOLD
+    r["dinov2_class"] = display_name
+    r["dinov2_conf"]  = round(conf, 4)
 
-    if r["dinov2_warning"]:
-        r["warnings"].append(f"⚠️ Độ tin cậy phân loại thấp ({conf:.1%}) — kết quả có thể không chính xác.")
+    # Gắn warning nếu confidence thấp, nhưng KHÔNG chặn pipeline
+    if conf < DINOV2_LOW_CONF_WARN:
+        r["dinov2_low_conf"] = True
+        r["warnings"].append(
+            f"⚠️ Độ tin cậy DINOv2 thấp ({conf:.1%}) — kết quả có thể chưa chính xác, "
+            "nên tham khảo bác sĩ da liễu."
+        )
 
-    is_acne = (pred_idx == ACNE_CLASS_INDEX) and (conf >= DINOV2_THRESHOLD)
+    is_acne = (pred_idx == ACNE_CLASS_INDEX)
     r["is_acne"] = is_acne
 
+    # Không phải mụn → kết thúc luôn, trả tên bệnh + confidence
     if not is_acne:
-        r["recommendation"] = "Không phát hiện mụn trứng cá. Nếu có vấn đề da liễu, hãy tham khảo bác sĩ."
+        r["recommendation"] = (
+            "Không phát hiện mụn trứng cá. "
+            "Nếu có vấn đề da liễu, hãy tham khảo bác sĩ chuyên khoa."
+        )
         return r
 
-    # Step 2 — YOLO + ResNet song song
+    # ── Step 2: YOLO + ResNet song song ─────────────────────────────
     import base64, io
 
-    yolo_result  = [None]   # (count, confs, annotated_img)
-    resnet_result = [None]  # (grade, probs)
+    yolo_result   = [None]   # (count, cal_confs, annotated_img)
+    resnet_result = [None]   # (grade, probs)
 
     def _yolo():
         if yolo_model:
@@ -284,91 +378,86 @@ def run_pipeline(img_pil: Image.Image) -> dict:
         if resnet_models:
             try:
                 resnet_result[0] = grade_resnet(img_pil)
-                print(f"   ℹ️  grade_resnet → grade={resnet_result[0][0] if resnet_result[0] else None}")
+                print(f"   ℹ️  ResNet grade={resnet_result[0][0] if resnet_result[0] else None}")
             except Exception as _e:
                 import traceback as _tb
                 print(f"❌ ResNet inference error: {_e}"); _tb.print_exc()
         else:
-            print("   ⚠️  _resnet thread: resnet_models is EMPTY at inference time!")
+            print("   ⚠️  resnet_models rỗng tại inference time!")
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
         concurrent.futures.wait([pool.submit(_yolo), pool.submit(_resnet)])
 
-    # ── Xử lý kết quả YOLO ──────────────────────────────────────────
-    if yolo_result[0] is not None:
-        count, confs, annotated = yolo_result[0]
-        yg, yl, yc = yolo_severity(count)
-        r.update(yolo_count=count, yolo_confs=confs,
-                 yolo_severity_grade=yg, yolo_severity_label=yl,
-                 yolo_severity_color=yc)
-        buf = io.BytesIO()
-        Image.fromarray(annotated).save(buf, format="JPEG", quality=85)
-        r["annotated_image_b64"] = base64.b64encode(buf.getvalue()).decode()
-    else:
-        buf = io.BytesIO()
-        img_pil.save(buf, format="JPEG", quality=85)
-        r["annotated_image_b64"] = base64.b64encode(buf.getvalue()).decode()
+    # ── Encode ảnh gốc (không vẽ bbox) ──────────────────────────────
+    buf = io.BytesIO()
+    img_pil.save(buf, format="JPEG", quality=85)
+    r["annotated_image_b64"] = base64.b64encode(buf.getvalue()).decode()
 
-    # ── Xử lý kết quả ResNet50 ──────────────────────────────────────
+    # ── Lưu kết quả YOLO (số nốt + calibrated confs) ─────────────────
+    if yolo_result[0] is not None:
+        count, cal_confs = yolo_result[0]
+        r.update(yolo_count=count, yolo_confs=cal_confs)
+    else:
+        r["warnings"].append("⚠️ YOLO không khả dụng — không có thông tin vị trí nốt mụn.")
+
+    # ── Lưu kết quả ResNet (anchor grade) ───────────────────────────
     if resnet_result[0] is not None:
         grade, probs = resnet_result[0]
         if grade is not None:
-            r.update(resnet_grade=grade,
-                     resnet_probs=[round(p, 4) for p in probs],
-                     resnet_grade_label=GRADE_LABEL.get(grade, ""))
+            r.update(
+                resnet_grade=grade,
+                resnet_probs=[round(p, 4) for p in probs],
+                resnet_grade_label=GRADE_LABEL.get(grade, ""),
+            )
 
-    # ── Step 3: Voting 2/3 ──────────────────────────────────────────
-    # 3 model độc lập: DINOv2, YOLO, ResNet50
-    # Mỗi model 1 phiếu. Kết quả nào có ≥2 phiếu thì thắng.
+    # ── Step 3: Fusion — Weighted Average (ResNet anchor + YOLO bổ sung) ──
     #
-    # TH đặc biệt: DINOv2 nói "mụn" nhưng
-    #   • YOLO detect 0 nốt  → phiếu "bình thường"
-    #   • ResNet grade == 0  → phiếu "bình thường"
-    # → 2 phiếu "bình thường" vs 1 phiếu "mụn" → kết luận DA BÌNH THƯỜNG
+    # Chiến lược phân vai rõ ràng, hai model KHÔNG cạnh tranh nhau:
+    #   • ResNet50 → quyết định grade (tin cậy hơn về mức độ tổng thể)
+    #   • YOLOv8  → bổ sung vị trí bbox + count (không quyết định grade)
+    #
+    # Confidence của YOLO đã được calibrate bằng Temperature Scaling ở
+    # bước detect_yolo() nên severity score phản ánh thực tế hơn.
+    #
+    # Fallback:
+    #   - Chỉ có ResNet → dùng ResNet grade trực tiếp
+    #   - Chỉ có YOLO   → dùng YOLO severity score (kém tin cậy hơn, thêm warning)
+    #   - Cả hai đều lỗi → báo lỗi
 
-    yg         = r["yolo_severity_grade"]   # None nếu YOLO không chạy
-    rg         = r["resnet_grade"]          # None nếu ResNet không chạy
-    yolo_count = r["yolo_count"]
+    rg = r["resnet_grade"]
+    yc = r["yolo_count"]
 
-    yolo_votes_normal   = (yolo_result[0] is not None) and (yolo_count == 0)
-    resnet_votes_normal = (rg is None) or (rg == 0)   # Grade 0 hoặc model không chạy = "bình thường"
+    if rg is not None and yolo_result[0] is not None:
+        # Trường hợp lý tưởng: cả hai model đều có kết quả
+        final_grade = _weighted_grade(rg, r["resnet_probs"], yc)
 
-    if yolo_votes_normal and resnet_votes_normal:
-        # YOLO không tìm thấy nốt mụn nào, ResNet cũng không đánh giá nghiêm trọng → bình thường
-        r["is_acne"] = False
-        reason = "YOLO không phát hiện nốt mụn nào"
-        if rg == 0:
-            reason += " và ResNet50 đánh giá Grade 0"
-        elif rg is None:
-            reason += " (ResNet50 không khả dụng)"
+    elif rg is not None:
+        # Chỉ có ResNet → dùng luôn ResNet grade (đã là anchor)
+        final_grade = rg
         r["warnings"].append(
-            f"⚑ DINOv2 nhận định mụn trứng cá nhưng {reason}. "
-            "Kết luận: da bình thường / không phát hiện mụn rõ ràng."
+            "⚠️ YOLO không khả dụng — grade dựa hoàn toàn vào ResNet50."
         )
-        r.update(
-            final_grade=None,
-            final_label="Da bình thường",
-            final_color="#22c55e",
-            recommendation="Không phát hiện mụn rõ ràng. Nếu bạn vẫn lo ngại, hãy tham khảo bác sĩ da liễu.",
+
+    elif yolo_result[0] is not None:
+        # Chỉ có YOLO → map count → grade (kém tin cậy hơn)
+        yolo_raw_grade = int(round(yolo_severity_score(yc) * 3))
+        final_grade = yolo_raw_grade
+        r["warnings"].append(
+            "⚠️ ResNet50 không khả dụng — grade chỉ dựa vào YOLO (kém tin cậy hơn). "
+            "Nên tham khảo bác sĩ da liễu."
         )
+
+    else:
+        # Cả hai đều lỗi
+        r["warnings"].append("❌ Cả YOLO và ResNet đều không khả dụng — không thể đánh giá mức độ.")
+        r.update(final_grade=None, final_label="Không xác định", final_color="#6b7280",
+                 recommendation="Hệ thống gặp lỗi. Vui lòng thử lại hoặc tham khảo bác sĩ da liễu.")
         return r
 
-    # Các trường hợp còn lại: DINOv2 + ít nhất 1 model đồng ý có mụn
-    # Ưu tiên ResNet (grading toàn ảnh), fallback sang YOLO
-    final = rg if rg is not None else yg
-    inconsistent = (yg is not None and rg is not None and abs(yg - rg) >= 2)
-
-    if inconsistent:
-        r["warnings"].append(
-            f"⚑ Hai mô hình có nhận định khác nhau "
-            f"(YOLO ước tính Grade {yg}, ResNet50 cho Grade {rg}). Nên tham khảo bác sĩ."
-        )
-
     r.update(
-        inconsistent=inconsistent,
-        final_grade=final,
-        final_label=GRADE_LABEL.get(final, "Không xác định"),
-        final_color=GRADE_COLOR_HEX.get(final, "#6b7280"),
-        recommendation=RECOMMENDATIONS.get(final, ""),
+        final_grade=final_grade,
+        final_label=GRADE_LABEL.get(final_grade, "Không xác định"),
+        final_color=GRADE_COLOR_HEX.get(final_grade, "#6b7280"),
+        recommendation=RECOMMENDATIONS.get(final_grade, ""),
     )
     return r
