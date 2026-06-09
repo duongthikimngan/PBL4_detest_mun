@@ -112,8 +112,13 @@ DINOV2_CLASS_NAMES = {
     30: "Tổn thương mạch máu (Vascular Lesion)",
 }
 
+# Grade đặc biệt: da bình thường (YOLO không detect nốt nào VÀ ResNet grade 0)
+# Dùng -1 để phân biệt với Grade 0 (mụn nhẹ)
+NORMAL_SKIN_GRADE = -1
+
 # 4 mức độ mụn — ResNet50 quyết định, YOLO bổ sung vị trí
 GRADE_LABEL = {
+    NORMAL_SKIN_GRADE: "Da bình thường",
     0: "Nhẹ (Grade 0)",
     1: "Trung bình (Grade 1)",
     2: "Nặng (Grade 2)",
@@ -121,6 +126,7 @@ GRADE_LABEL = {
 }
 
 GRADE_COLOR_HEX = {
+    NORMAL_SKIN_GRADE: "#16a34a",
     0: "#22c55e",
     1: "#eab308",
     2: "#f97316",
@@ -128,6 +134,10 @@ GRADE_COLOR_HEX = {
 }
 
 RECOMMENDATIONS = {
+    NORMAL_SKIN_GRADE: (
+        "Không phát hiện nốt mụn. Da bạn trông bình thường - "
+        "tiếp tục duy trì thói quen chăm sóc da hàng ngày."
+    ),
     0: "Mụn nhẹ: dùng BHA/AHA không kê đơn, rửa mặt 2 lần/ngày.",
     1: "Mụn trung bình: cân nhắc gặp bác sĩ da liễu, có thể dùng Benzoyl Peroxide.",
     2: "Mụn nặng: cần kê đơn (retinoid, kháng sinh), gặp bác sĩ da liễu.",

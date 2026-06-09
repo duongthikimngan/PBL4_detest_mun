@@ -427,6 +427,18 @@ def run_pipeline(img_pil: Image.Image) -> dict:
     rg = r["resnet_grade"]
     yc = r["yolo_count"]
 
+    # ── Check da bình thường: YOLO không detect nốt nào VÀ ResNet grade 0 ──
+    # Early-exit trước khi tính weighted average — cả hai model đồng thuận
+    # rằng không có mụn, không cần fusion thêm.
+    if rg is not None and yolo_result[0] is not None and yc == 0 and rg == 0:
+        r.update(
+            final_grade=NORMAL_SKIN_GRADE,
+            final_label=GRADE_LABEL[NORMAL_SKIN_GRADE],
+            final_color=GRADE_COLOR_HEX[NORMAL_SKIN_GRADE],
+            recommendation=RECOMMENDATIONS[NORMAL_SKIN_GRADE],
+        )
+        return r
+
     if rg is not None and yolo_result[0] is not None:
         # Trường hợp lý tưởng: cả hai model đều có kết quả
         final_grade = _weighted_grade(rg, r["resnet_probs"], yc)
